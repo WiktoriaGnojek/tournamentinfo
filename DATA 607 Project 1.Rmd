@@ -1,0 +1,79 @@
+---
+title: "Project 1"
+output: html_notebook
+---
+Project 1 for DATA 607
+
+Wiktoria Gnojek 
+
+The initial link to the data set can be found here; https://bbhosted.cuny.edu/bbcswebdav/pid-59650551-dt-content-rid-462255833_1/courses/SPS01_DATA_607_002_1219_1/SPS01_DATA_607_002_1219_1_ImportedContent_20210819013518/SPS01_DATA_607_001_1219_1_ImportedContent_20210818092307/SPS01_DATA_607_02_1202_1_ImportedContent_20200126080334/tournamentinfo.txt
+
+I've also exported the txt file to a github page, in case the link above isn't accessible for everyone; https://github.com/WiktoriaGnojek/tournamentinfo/blob/main/tournamentinfo.txt
+```{r}
+library(tidyverse)
+library(readr)
+library(stringr)
+```
+Framing the Problem
+
+First, we'll begin by exporting the data to this R markdown. We want to create an R markdown file that can be stored as a CSV with appropriate headings and average pre-chess ratings. 
+```{r}
+tournamentinfo <- read.csv("https://raw.githubusercontent.com/WiktoriaGnojek/tournamentinfo/main/tournamentinfo.txt",header = FALSE)
+tournamentinfo
+```
+Processing the Data 
+
+To begin the clean up process, we will be getting rid of the initial first lines of the data set. These include the headings. 
+```{r}
+noheadings <- tournamentinfo[-c(1:3),]
+head(noheadings)
+```
+Extracting the Data 
+
+Each players information is split into two rows, we want to extract the two rows so that it is easier to reference. 
+```{r}
+player_info <- noheadings[seq(2,length(noheadings),3)]
+head(player_info)
+match_info <- noheadings[seq(3,length(noheadings),3)]
+head(match_info)
+```
+Exploring the Data and Creating Our Own Table
+
+Now that we extracted the data, we will begin creating and solving the initial project question. First we will create a customized data set with the following info; Player’s Name, Player’s State, Total Number of Points, and Player’s Pre-Rating. At this point we are using string extractions, you can find the information on this in the R for Data Science book, chapter 14.
+
+We are also using regex expressions, as a guide I used this cheatsheet; https://evoldyn.gitlab.io/evomics-2018/ref-sheets/R_strings.pdf
+```{r}
+library(stringr)
+Player_Name <- str_extract(player_info, "(\\w+\\s){2,3}") 
+Player_State <- str_extract(match_info,"\\w\\w") 
+Total_Num_Of_Points <- str_extract(player_info,"\\d.\\d") 
+Players_Pre_Rating <- as.numeric(str_extract(str_extract(match_info, "\\D\\d{3,4}\\D"), "\\d+")) 
+```
+Finally, we can find the "Average Pre Chess Rating of Opponents".
+
+First, we have to extract opponent data. This data is found in the first row of our split, and in the initial data set it is under the rounds per player. 
+```{r}
+opponent_data <- str_extract_all(player_info, "\\d+\\|")
+opponent_data <- str_extract_all(opponent_data, "\\d+")
+head(opponent_data)
+```
+Next, we calculate average pre chess ratings of opponents. 
+```{r}
+Opponent_Pre_Ave_Rating <- c()
+for (i in c(1:length(opponent_data))) {
+  Opponent_Pre_Ave_Rating[i] <- round(mean(Players_Pre_Rating[as.numeric(opponent_data[[i]])]),0)
+}
+Opponent_Pre_Ave_Rating 
+```
+Combining All in One Table 
+```{r}
+df <- data.frame(Player_Name,Player_State,Total_Num_Of_Points,Players_Pre_Rating,Opponent_Pre_Ave_Rating)
+df
+```
+```{r}
+write_csv(df, "tournament.csv")
+```
+
+
+
+
